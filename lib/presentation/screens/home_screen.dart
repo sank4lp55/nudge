@@ -3,9 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nudge/presentation/widgets/chat_list_item.dart';
 import 'package:nudge/presentation/widgets/empty_state_widget.dart';
 import 'package:nudge/presentation/widgets/error_state_widget.dart';
-import '../bloc/chat/chat_bloc.dart';
-import '../bloc/chat/chat_event.dart';
-import '../bloc/chat/chat_state.dart';
+import '../bloc/chat/chat_list/chat_list_bloc.dart';
+import '../bloc/chat/chat_list/chat_list_event.dart';
+import '../bloc/chat/chat_list/chat_list_state.dart';
 import 'chat_screen.dart';
 import '../../core/theme/app_theme.dart';
 
@@ -20,7 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<ChatBloc>().add(LoadChatPreviewsEvent());
+    context.read<ChatListBloc>().add(LoadChatListEvent());
   }
 
   @override
@@ -30,14 +30,11 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Modern App Bar
             _buildAppBar(),
-
-            // Chat list
             Expanded(
-              child: BlocBuilder<ChatBloc, ChatState>(
+              child: BlocBuilder<ChatListBloc, ChatListState>(
                 builder: (context, state) {
-                  if (state is ChatLoading) {
+                  if (state is ChatListLoading) {
                     return const Center(
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
@@ -46,23 +43,26 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   }
 
-                  if (state is ChatError) {
+                  if (state is ChatListError) {
                     return ErrorState(
                       message: state.message,
                       onRetry: () {
-                        context.read<ChatBloc>().add(LoadChatPreviewsEvent());
+                        context.read<ChatListBloc>().add(LoadChatListEvent());
                       },
                     );
                   }
 
-                  if (state is ChatPreviewsLoaded) {
+                  if (state is ChatListLoaded) {
                     if (state.chatPreviews.isEmpty) {
                       return const EmptyState();
                     }
 
                     return RefreshIndicator(
                       onRefresh: () async {
-                        context.read<ChatBloc>().add(LoadChatPreviewsEvent());
+                        context.read<ChatListBloc>().add(
+                          RefreshChatListEvent(),
+                        );
+                        await Future.delayed(const Duration(milliseconds: 500));
                       },
                       color: AppTheme.primaryPurple,
                       backgroundColor: AppTheme.cardBackground,
@@ -75,15 +75,19 @@ class _HomeScreenState extends State<HomeScreen> {
                           return ModernChatListItem(
                             chat: chat,
                             onTap: () {
+                              // Navigate to ChatScreen
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => BlocProvider.value(
-                                    value: context.read<ChatBloc>(),
-                                    child: ChatScreen(user: chat.user),
-                                  ),
+                                  builder: (_) => ChatScreen(user: chat.user),
                                 ),
-                              );
+                              ).then((_) {
+                                // Refresh the chat list when coming back
+                                // This will fetch updated unread counts from the repository
+                                context.read<ChatListBloc>().add(
+                                  RefreshChatListEvent(),
+                                );
+                              });
                             },
                           );
                         },
@@ -97,16 +101,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-      ),
-
-      // Floating Action Button with better styling
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // TODO: Navigate to new chat screen
-        },
-        backgroundColor: AppTheme.primaryPurple,
-        elevation: 6,
-        child: const Icon(Icons.edit_rounded, size: 24),
       ),
     );
   }

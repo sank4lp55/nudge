@@ -12,4 +12,5 @@ abstract class ChatRepository {
   Stream<Map<String, bool>> get typingStream;
   void startTyping(String userId);
   void stopTyping(String userId);
+  Stream<Message> get messageStream;
 }

@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nudge/presentation/bloc/auth/auth_event.dart';
 import 'core/di/injection_container.dart';
 import 'presentation/bloc/auth/auth_bloc.dart';
-import 'presentation/bloc/chat/chat_bloc.dart';
+import 'presentation/bloc/chat/chat_list/chat_list_bloc.dart';
 import 'presentation/screens/splash_screen.dart';
 import 'core/theme/app_theme.dart';
 
@@ -27,7 +27,7 @@ class ChatApp extends StatelessWidget {
           create: (context) => getIt<AuthBloc>()..add(CheckAuthStatusEvent()),
         ),
         BlocProvider(
-          create: (context) => getIt<ChatBloc>(),
+          create: (context) => getIt<ChatListBloc>(),
         ),
       ],
       child: MaterialApp(

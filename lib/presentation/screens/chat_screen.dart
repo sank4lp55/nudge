@@ -1,33 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import '../bloc/chat/chat_bloc.dart';
-import '../bloc/chat/chat_event.dart';
-import '../bloc/chat/chat_state.dart';
+import '../bloc/chat/individual_chat/chat_bloc.dart';
+import '../bloc/chat/individual_chat/chat_event.dart';
+import '../bloc/chat/individual_chat/chat_state.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/online_indicator.dart';
 import '../widgets/typing_indicator.dart';
 import '../../domain/entities/user.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/di/injection_container.dart';
 
-class ChatScreen extends StatefulWidget {
+class ChatScreen extends StatelessWidget {
   final User user;
 
   const ChatScreen({super.key, required this.user});
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => getIt<ChatBloc>()..add(LoadMessagesEvent(user.id)),
+      child: _ChatScreenContent(user: user),
+    );
+  }
 }
 
-class _ChatScreenState extends State<ChatScreen> {
-  final TextEditingController _messageController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
+class _ChatScreenContent extends StatefulWidget {
+  final User user;
+
+  const _ChatScreenContent({required this.user});
 
   @override
-  void initState() {
-    super.initState();
-    context.read<ChatBloc>().add(LoadMessagesEvent(widget.user.id));
-  }
+  State<_ChatScreenContent> createState() => _ChatScreenContentState();
+}
+
+class _ChatScreenContentState extends State<_ChatScreenContent> {
+  final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void dispose() {
@@ -68,10 +77,7 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            context.read<ChatBloc>().add(LoadChatPreviewsEvent());
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         title: Row(
           children: [
@@ -140,7 +146,38 @@ class _ChatScreenState extends State<ChatScreen> {
               builder: (context, state) {
                 if (state is ChatLoading) {
                   return const Center(
-                    child: CircularProgressIndicator(),
+                    child: CircularProgressIndicator(
+                      color: AppTheme.primaryPurple,
+                    ),
+                  );
+                }
+
+                if (state is ChatError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Colors.red,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Error: ${state.message}',
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            context.read<ChatBloc>().add(
+                              LoadMessagesEvent(widget.user.id),
+                            );
+                          },
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
                   );
                 }
 
@@ -179,6 +216,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     itemBuilder: (context, index) {
                       if (isTyping && index == state.messages.length) {
                         return Padding(
+                          key: const ValueKey('typing_indicator'),
                           padding: const EdgeInsets.only(top: 8),
                           child: Row(
                             children: [
@@ -199,6 +237,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           );
 
                       return Column(
+                        key: ValueKey(message.id), // Add key for better performance
                         children: [
                           if (showDate)
                             Padding(

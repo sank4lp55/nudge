@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:nudge/domain/repositories/chat_repositories.dart';
+import 'package:nudge/presentation/bloc/chat/chat_list/chat_list_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -9,7 +10,7 @@ import '../../data/repositories/auth_repository_impl.dart';
 import '../../data/repositories/chat_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../presentation/bloc/auth/auth_bloc.dart';
-import '../../presentation/bloc/chat/chat_bloc.dart';
+import '../../presentation/bloc/chat/individual_chat/chat_bloc.dart';
 
 final getIt = GetIt.instance;
 
@@ -23,7 +24,7 @@ Future<void> initializeDependencies() async {
 
   // Data sources
   getIt.registerLazySingleton<AuthLocalDataSource>(
-        () => AuthLocalDataSource(
+    () => AuthLocalDataSource(
       getIt<FlutterSecureStorage>(),
       getIt<SharedPreferences>(),
     ),
@@ -33,22 +34,25 @@ Future<void> initializeDependencies() async {
 
   // Repositories
   getIt.registerLazySingleton<AuthRepository>(
-        () => AuthRepositoryImpl(
+    () => AuthRepositoryImpl(
       getIt<MockApiService>(),
       getIt<AuthLocalDataSource>(),
     ),
   );
 
   getIt.registerLazySingleton<ChatRepository>(
-        () => ChatRepositoryImpl(getIt<MockApiService>()),
+    () => ChatRepositoryImpl(getIt<MockApiService>()),
   );
 
   // BLoCs
-  getIt.registerFactory<AuthBloc>(
-        () => AuthBloc(getIt<AuthRepository>()),
+  getIt.registerFactory<AuthBloc>(() => AuthBloc(getIt<AuthRepository>()));
+
+  // ChatListBloc is singleton since it's used in HomeScreen
+  getIt.registerLazySingleton<ChatListBloc>(
+    () => ChatListBloc(getIt<ChatRepository>()),
   );
 
-  getIt.registerFactory<ChatBloc>(
-        () => ChatBloc(getIt<ChatRepository>()),
-  );
+  // ChatBloc is registered as Factory (not singleton)
+  // because each chat screen needs its own instance
+  getIt.registerFactory<ChatBloc>(() => ChatBloc(getIt<ChatRepository>()));
 }
