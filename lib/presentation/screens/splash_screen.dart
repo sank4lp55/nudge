@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:nudge/core/theme/app_theme.dart';
 import 'package:nudge/presentation/screens/main_navigation_screen.dart';
 import 'package:nudge/presentation/screens/onboarding_screen.dart';
 import '../bloc/auth/auth_bloc.dart';
@@ -69,18 +71,50 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.chat_bubble_rounded,
-                size: 100,
-                color: Theme.of(context).primaryColor,
+              // App Icon with modern styling
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppTheme.primaryPurple.withOpacity(0.1),
+                      AppTheme.primaryPurple.withOpacity(0.3),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppTheme.primaryPurple.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Image.asset("assets/app_assets/nudge_bro.png"),
+                ),
               ),
-              const SizedBox(height: 24),
-              Text(
-                'Chat App',
-                style: Theme.of(context).textTheme.displayMedium,
+
+              const SizedBox(height: 20),
+
+              // Logo with better positioning
+              SizedBox(
+                height: 35,
+                child: Center(
+                  child: SvgPicture.asset(
+                    "assets/app_assets/NUDGE.svg",
+                    height: 30,
+                    fit: BoxFit.contain,
+                  ),
+                ),
               ),
-              const SizedBox(height: 48),
-              const CircularProgressIndicator(),
+              const SizedBox(height: 20),
+              Container(
+                height: 20,
+                width:20,
+                child: const CircularProgressIndicator(),
+              ),
             ],
           ),
         ),

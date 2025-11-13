@@ -16,27 +16,28 @@ class ChatPreview extends Equatable {
     this.isOnline = false,
   });
 
-  factory ChatPreview.fromJson(Map<String, dynamic> json) {
+  ChatPreview copyWith({
+    User? user,
+    String? lastMessage,
+    DateTime? lastMessageTime,
+    int? unreadCount,
+    bool? isOnline,
+  }) {
     return ChatPreview(
-      user: User.fromJson(json['user']),
-      lastMessage: json['lastMessage'] ?? '',
-      lastMessageTime: DateTime.parse(json['lastMessageTime']),
-      unreadCount: json['unreadCount'] ?? 0,
-      isOnline: json['isOnline'] ?? false,
+      user: user ?? this.user,
+      lastMessage: lastMessage ?? this.lastMessage,
+      lastMessageTime: lastMessageTime ?? this.lastMessageTime,
+      unreadCount: unreadCount ?? this.unreadCount,
+      isOnline: isOnline ?? this.isOnline,
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'user': user.toJson(),
-      'lastMessage': lastMessage,
-      'lastMessageTime': lastMessageTime.toIso8601String(),
-      'unreadCount': unreadCount,
-      'isOnline': isOnline,
-    };
-  }
-
   @override
-  List<Object?> get props =>
-      [user, lastMessage, lastMessageTime, unreadCount, isOnline];
+  List<Object?> get props => [
+    user,
+    lastMessage,
+    lastMessageTime,
+    unreadCount,
+    isOnline,
+  ];
 }

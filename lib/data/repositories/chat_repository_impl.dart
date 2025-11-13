@@ -1,13 +1,18 @@
+import 'package:nudge/data/datasources/remote/mock_api_service.dart';
 import 'package:nudge/domain/repositories/chat_repositories.dart';
-
-import '../../domain/entities/chat_preview.dart';
 import '../../domain/entities/message.dart';
-import '../datasources/remote/mock_api_service.dart';
+import '../../domain/entities/chat_preview.dart';
 
 class ChatRepositoryImpl implements ChatRepository {
   final MockApiService _apiService;
 
   ChatRepositoryImpl(this._apiService);
+
+  @override
+  Stream<Map<String, bool>> get typingStream => _apiService.typingStream;
+
+  @override
+  Stream<Message> get messageStream => _apiService.messageStream;
 
   @override
   Future<List<ChatPreview>> getChatPreviews() async {
@@ -34,9 +39,6 @@ class ChatRepositoryImpl implements ChatRepository {
   Future<void> markAsRead(String userId) async {
     await _apiService.markAsRead(userId);
   }
-
-  @override
-  Stream<Map<String, bool>> get typingStream => _apiService.typingStream;
 
   @override
   void startTyping(String userId) {

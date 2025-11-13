@@ -59,9 +59,13 @@ class MockApiService {
   // Current logged-in user
   User? _currentUser;
 
-  // Simulated typing indicator
+  // Simulated typing indicator stream
   final _typingController = StreamController<Map<String, bool>>.broadcast();
   Stream<Map<String, bool>> get typingStream => _typingController.stream;
+
+  // Message stream for real-time updates
+  final _messageController = StreamController<Message>.broadcast();
+  Stream<Message> get messageStream => _messageController.stream;
 
   // Initialize mock messages
   MockApiService() {
@@ -183,17 +187,21 @@ class MockApiService {
   Future<List<ChatPreview>> getChatPreviews() async {
     await Future.delayed(const Duration(seconds: 1));
 
-    return _mockUsers.map((user) {
+    final previews = _mockUsers.map((user) {
       final messages = _mockMessages[user.id] ?? [];
-      final lastMessage = messages.isNotEmpty
-          ? messages.last
-          : Message(
-        id: '',
-        senderId: user.id,
-        receiverId: 'current',
-        content: 'No messages yet',
-        timestamp: DateTime.now(),
-      );
+
+      // Determine last message and timestamp
+      final String lastMessageContent;
+      final DateTime lastMessageTime;
+
+      if (messages.isNotEmpty) {
+        lastMessageContent = messages.last.content;
+        lastMessageTime = messages.last.timestamp;
+      } else {
+        lastMessageContent = 'No messages yet';
+        // Use a very old timestamp for chats with no messages
+        lastMessageTime = DateTime(2000, 1, 1);
+      }
 
       final unreadCount = messages
           .where((m) => m.senderId == user.id && !m.isRead)
@@ -201,13 +209,18 @@ class MockApiService {
 
       return ChatPreview(
         user: user,
-        lastMessage: lastMessage.content,
-        lastMessageTime: lastMessage.timestamp,
+        lastMessage: lastMessageContent,
+        lastMessageTime: lastMessageTime,
         unreadCount: unreadCount,
         isOnline: user.isOnline,
       );
-    }).toList()
-      ..sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+    }).toList();
+
+    // Simple sort: most recent message first
+    // Chats with no messages (old timestamp) will naturally go to bottom
+    previews.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+
+    return previews;
   }
 
   /// Get messages for a specific chat
@@ -239,8 +252,11 @@ class MockApiService {
     }
     _mockMessages[receiverId]!.add(message);
 
-    // Simulate auto-reply after a delay (30% chance)
-    if (_random.nextDouble() < 0.3) {
+    // Don't broadcast our own messages through the stream
+    // (they're already added locally in the bloc)
+
+    // Simulate auto-reply after a delay (100% chance for demo)
+    if (_random.nextDouble() <= 1.0) {
       _simulateAutoReply(receiverId);
     }
 
@@ -251,8 +267,8 @@ class MockApiService {
   void startTyping(String userId) {
     _typingController.add({userId: true});
 
-    // Auto-stop typing after 3 seconds
-    Future.delayed(const Duration(seconds: 3), () {
+    // Auto-stop typing after 2 seconds
+    Future.delayed(const Duration(seconds: 2), () {
       _typingController.add({userId: false});
     });
   }
@@ -277,7 +293,16 @@ class MockApiService {
 
   /// Simulate auto-reply from other users
   void _simulateAutoReply(String userId) {
-    final user = _mockUsers.firstWhere((u) => u.id == userId);
+    final user = _mockUsers.firstWhere(
+          (u) => u.id == userId,
+      orElse: () => const User(
+        id: 'unknown',
+        name: 'Unknown User',
+        email: 'unknown@example.com',
+        isOnline: false,
+      ),
+    );
+
     final responses = [
       'Thanks!',
       'Got it!',
@@ -286,15 +311,20 @@ class MockApiService {
       '👍',
       'Will do!',
       'Awesome!',
+      'Perfect!',
+      'Alright!',
+      'Cool!',
     ];
 
-    // Show typing indicator
+    // Show typing indicator after 2 seconds
     Future.delayed(const Duration(seconds: 2), () {
-      startTyping(userId);
+      if (!_typingController.isClosed) {
+        startTyping(userId);
+      }
     });
 
-    // Send reply
-    Future.delayed(const Duration(seconds: 5), () {
+    // Send reply after 3 seconds
+    Future.delayed(const Duration(seconds: 3), () {
       final reply = Message(
         id: _uuid.v4(),
         senderId: userId,
@@ -306,12 +336,27 @@ class MockApiService {
         senderName: user.name,
       );
 
+      // Add to local message store
+      if (_mockMessages[userId] == null) {
+        _mockMessages[userId] = [];
+      }
       _mockMessages[userId]!.add(reply);
-      stopTyping(userId);
+
+      // Stop typing indicator
+      if (!_typingController.isClosed) {
+        stopTyping(userId);
+      }
+
+      // Broadcast the new message through the stream
+      if (!_messageController.isClosed) {
+        _messageController.add(reply);
+      }
     });
   }
 
+  /// Clean up resources
   void dispose() {
     _typingController.close();
+    _messageController.close();
   }
 }

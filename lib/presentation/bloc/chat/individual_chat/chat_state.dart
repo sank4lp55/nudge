@@ -1,10 +1,6 @@
 import 'package:equatable/equatable.dart';
-import '../../../domain/entities/chat_preview.dart';
-import '../../../domain/entities/message.dart';
 
 abstract class ChatState extends Equatable {
-  const ChatState();
-
   @override
   List<Object?> get props => [];
 }
@@ -13,28 +9,19 @@ class ChatInitial extends ChatState {}
 
 class ChatLoading extends ChatState {}
 
-class ChatPreviewsLoaded extends ChatState {
-  final List<ChatPreview> chatPreviews;
-
-  const ChatPreviewsLoaded(this.chatPreviews);
-
-  @override
-  List<Object?> get props => [chatPreviews];
-}
-
 class MessagesLoaded extends ChatState {
-  final List<Message> messages;
+  final List<dynamic> messages; // Replace with your Message model
   final String userId;
   final Map<String, bool> typingStatus;
 
-  const MessagesLoaded({
+  MessagesLoaded({
     required this.messages,
     required this.userId,
     this.typingStatus = const {},
   });
 
   MessagesLoaded copyWith({
-    List<Message>? messages,
+    List<dynamic>? messages,
     String? userId,
     Map<String, bool>? typingStatus,
   }) {
@@ -50,10 +37,10 @@ class MessagesLoaded extends ChatState {
 }
 
 class MessageSending extends ChatState {
-  final List<Message> messages;
+  final List<dynamic> messages;
   final String userId;
 
-  const MessageSending({
+  MessageSending({
     required this.messages,
     required this.userId,
   });
@@ -65,7 +52,7 @@ class MessageSending extends ChatState {
 class ChatError extends ChatState {
   final String message;
 
-  const ChatError(this.message);
+  ChatError(this.message);
 
   @override
   List<Object?> get props => [message];
